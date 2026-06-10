@@ -110,7 +110,9 @@
         throw 'No active connection. Run Connect-EntraExporter or Connect-MgGraph to sign in and then retry.'
     }
 
-    if ($All) { $Type = @('All') }
+    if ($All) {
+        $Type = @('All') 
+    }
     $global:Type = $Type #Used in places like Groups where Config flag will limit the resultset to just dynamic groups.
 
     if (!$ExportSchema) {
@@ -118,22 +120,23 @@
     }
 
     $authScope = $mgContext.AuthType
-    if ($authScope -eq "Delegated") {
-        $schemaScopeType = "DelegatedPermission"
-    } else {
-        $schemaScopeType = "ApplicationPermission"
+    if ($authScope -eq 'Delegated') {
+        $schemaScopeType = 'DelegatedPermission'
+    }
+    else {
+        $schemaScopeType = 'ApplicationPermission'
     }
 
     # modify schema filter property if needed
     foreach ($entry in $ExportSchema) {
-        $graphUri = Get-ObjectProperty $entry "GraphUri"
+        $graphUri = Get-ObjectProperty $entry 'GraphUri'
         # filter out synced users or groups
-        if ($CloudUsersAndGroupsOnly -and ($graphUri -in "users","groups")) {
-            if([string]::IsNullOrEmpty($entry.Filter)){
-                $entry.Filter = "onPremisesSyncEnabled ne true"
+        if ($CloudUsersAndGroupsOnly -and ($graphUri -in 'users', 'groups')) {
+            if ([string]::IsNullOrEmpty($entry.Filter)) {
+                $entry.Filter = 'onPremisesSyncEnabled ne true'
             }
             else {
-                $entry.Filter = $entry.Filter + " and (onPremisesSyncEnabled ne true)"
+                $entry.Filter = $entry.Filter + ' and (onPremisesSyncEnabled ne true)'
             }
         }
     }
@@ -155,7 +158,7 @@
         )
 
         # add a random number to avoid duplicated ids in batch requests
-        $requestId + "%%%" + (Get-Random) + "%%%"
+        $requestId + '%%%' + (Get-Random) + '%%%'
     }
 
     function _normalizeRequestId {
@@ -170,7 +173,7 @@
         )
 
         # remove the random string added to avoid duplicated ids in batch requests
-        $requestId -replace "\%\%\%\d+\%\%\%", ""
+        $requestId -replace '\%\%\%\d+\%\%\%', ''
     }
 
     function _processBatchErrors {
@@ -180,12 +183,12 @@
         )
 
         foreach ($err in $requestErrors) {
-            if ($err.Exception.Source -eq "BatchRequest") {
+            if ($err.Exception.Source -eq 'BatchRequest') {
                 # batch request errors
 
                 # it happens that before starting to retrieve app details, the app is deleted
                 # in this case we get 404 error which we can safely ignore
-                if ($err.TargetObject.response.status -in 400,404) {
+                if ($err.TargetObject.response.status -in 400, 404) {
                     Write-Verbose "Ignoring request with id '$($err.TargetObject.request.id)' as it returned status code $($err.TargetObject.response.status)"
                     continue
                 }
@@ -196,7 +199,7 @@
                 # }
 
                 # ignore errors specified in the schema
-                $requestedExportSchema.IgnoreError | select -Unique | % {
+                $requestedExportSchema.IgnoreError | Select-Object -Unique | ForEach-Object {
                     if ($err.Exception.Message -like "*$_*") {
                         Write-Verbose "Ignoring request with id '$($err.TargetObject.request.id)' as it returned error to ignore '$_'"
                         continue
@@ -204,7 +207,7 @@
                 }
 
                 # ignore custom errors
-                "The request did not have a subscription or a valid tenant level resource provider", "The filter 'applicableToScope eq ''' is not supported" | % {
+                'The request did not have a subscription or a valid tenant level resource provider', "The filter 'applicableToScope eq ''' is not supported" | ForEach-Object {
                     if ($err.Exception.Message -like "*$_*") {
                         Write-Verbose "Ignoring request with id '$($err.TargetObject.request.id)' as it returned error to ignore '$_'"
                         continue
@@ -213,7 +216,8 @@
 
                 Write-Error $err
                 break
-            } else {
+            }
+            else {
                 # other non-batch-related errors
                 Write-Error $err
                 break
@@ -244,16 +248,18 @@
             $apiVersion = Get-ObjectProperty $item 'ApiVersion'
             $ignoreError = Get-ObjectProperty $item 'IgnoreError'
             $children = Get-ObjectProperty $item 'Children'
-            if (!$apiVersion) { $apiVersion = 'v1.0' }
+            if (!$apiVersion) {
+                $apiVersion = 'v1.0' 
+            }
 
             if ($command) {
                 $commandParams = @{}
 
                 # define how the command should be invoked
                 switch ($command) {
-                    {$command -in 'Get-AccessPackageAssignmentPolicies', 'Get-AccessPackageAssignments', 'Get-AccessPackageResourceScopes'} {
+                    { $command -in 'Get-AccessPackageAssignmentPolicies', 'Get-AccessPackageAssignments', 'Get-AccessPackageResourceScopes' } {
                         $commandParams = @{
-                            Parents = $parentIds
+                            Parents  = $parentIds
                             BasePath = $basePath
                         }
                     }
@@ -269,10 +275,11 @@
             else {
                 $uri = New-FinalUri -RelativeUri $graphUri -Select (Get-ObjectProperty $item 'Select') -QueryParameters (Get-ObjectProperty $item 'QueryParameters') -Filter (Get-ObjectProperty $item 'Filter')
 
-                $parentIds | % {
-                    if ($item.Path -match "\.json$") {
+                $parentIds | ForEach-Object {
+                    if ($item.Path -match '\.json$') {
                         $outputFileName = Join-Path -Path $basePath -ChildPath $item.Path
-                    } else {
+                    }
+                    else {
                         $outputFileName = Join-Path -Path $basePath -ChildPath $_
                         $outputFileName = Join-Path -Path $outputFileName -ChildPath $item.Path
                     }
@@ -298,18 +305,19 @@
             # recursively process children if they exist
             if ($children) {
                 # for grandchildren, we need to collect the parent IDs from the results
-                $childBasePath = if ($item.Path -match "\.json$") {
+                $childBasePath = if ($item.Path -match '\.json$') {
                     $basePath
-                } else {
+                }
+                else {
                     Join-Path -Path $basePath -ChildPath $item.Path
                 }
 
                 # we'll process these after the current batch is executed and results are available
                 $script:childrenToProcess.Add(@{
-                    Children = $children
-                    BasePath = $childBasePath
-                    ParentPath = "$($item.Path)*"
-                })
+                        Children   = $children
+                        BasePath   = $childBasePath
+                        ParentPath = "$($item.Path)*"
+                    })
             }
         }
     }
@@ -356,7 +364,7 @@
     $batchRequestBetaApi = [System.Collections.Generic.List[Object]]::new()
     $script:childrenToProcess = [System.Collections.Generic.List[Object]]::new()
 
-    $requestedExportSchema = $ExportSchema | ? { Compare-Object $_.Tag $Type -ExcludeDifferent -IncludeEqual }
+    $requestedExportSchema = $ExportSchema | Where-Object { Compare-Object $_.Tag $Type -ExcludeDifferent -IncludeEqual }
 
     # process root level items
     foreach ($item in $requestedExportSchema) {
@@ -374,9 +382,11 @@
         $apiVersion = Get-ObjectProperty $item 'ApiVersion'
         $ignoreError = Get-ObjectProperty $item 'IgnoreError'
         $children = Get-ObjectProperty $item 'Children'
-        if (!$apiVersion) { $apiVersion = 'v1.0' }
+        if (!$apiVersion) {
+            $apiVersion = 'v1.0' 
+        }
 
-        if($command) {
+        if ($command) {
             $commandParams = @{}
 
             switch ($command) {
@@ -432,10 +442,10 @@
         # track children for later processing
         if ($children) {
             $script:childrenToProcess.Add(@{
-                Children = $children
-                BasePath = Join-Path -Path $Path -ChildPath $item.Path
-                ParentPath = $item.Path
-            })
+                    Children   = $children
+                    BasePath   = Join-Path -Path $Path -ChildPath $item.Path
+                    ParentPath = $item.Path
+                })
         }
     }
 
@@ -452,8 +462,8 @@
 
             $parentResult = $results | Where-Object {
                 $normalizedRequestId = _normalizeRequestId $_.RequestId
-                $normalizedRequestId -eq ($childGroup.BasePath -replace "\\", "/") -or
-                $normalizedRequestId -like ("$($childGroup.ParentPath)*" -replace "\\", "/")
+                $normalizedRequestId -eq ($childGroup.BasePath -replace '\\', '/') -or
+                $normalizedRequestId -like ("$($childGroup.ParentPath)*" -replace '\\', '/')
             }
 
             if (!$parentResult) {
@@ -462,7 +472,7 @@
             }
 
             # there can be multiple parent items with same Path, remove duplicates just in case
-            $parentIds = $parentResult.Id | select -Unique
+            $parentIds = $parentResult.Id | Select-Object -Unique
             Write-Verbose "Processing children results for parent '$($childGroup.ParentPath)' ($($parentIds.count))"
 
             _processChildrenRecursive -schemaItems $childGroup.Children -basePath $childGroup.BasePath -parentIds $parentIds -results ([ref]$results) -batchRequestStableApi ([ref]$batchRequestStableApi) -batchRequestBetaApi ([ref]$batchRequestBetaApi)
@@ -475,7 +485,7 @@
 
     #region output results
     foreach ($item in $results) {
-        if (!(Get-ObjectProperty $item 'Id')){
+        if (!(Get-ObjectProperty $item 'Id')) {
             <#
             In some special cases it can happen that 'id' property is missing like:
 
@@ -500,13 +510,14 @@
             RequestId                    : C:/temp/bkp3/Policies/CrossTenantAccessPolicy/Partners
             #>
 
-            $itemId = ($item.RequestId -split "/")[-1]
+            $itemId = ($item.RequestId -split '/')[-1]
             # remove the random number added to avoid duplicated ids in batch requests
             $itemId = _normalizeRequestId $itemId
 
-            Write-Verbose ($item | convertto-json -WarningAction SilentlyContinue)
+            Write-Verbose ($item | ConvertTo-Json -WarningAction SilentlyContinue)
             Write-Verbose "Result without 'id' property, using '$itemId' instead (RequestId '$($item.RequestId)')!"
-        } else {
+        }
+        else {
             $itemId = $item.id
         }
 
@@ -515,11 +526,11 @@
             Write-Warning "Item without RequestId. Shouldn't happen!"
         }
 
-        $outputFileName = $item.RequestId -replace "/", "\"
+        $outputFileName = $item.RequestId -replace '/', '\'
         # remove the random number added to avoid duplicated ids in batch requests
         $outputFileName = _normalizeRequestId $outputFileName
 
-        if ($outputFileName -notmatch "\.json$") {
+        if ($outputFileName -notmatch '\.json$') {
             $outputFileName = Join-Path (Join-Path -Path $outputFileName -ChildPath $itemId) -ChildPath "$itemId.json"
         }
 
@@ -528,7 +539,7 @@
             return
         }
 
-        $item | Select-Object * -ExcludeProperty RequestId | ConvertTo-Json -depth 100 | Out-File (New-Item -Path $outputFileName -Force)
+        $item | Select-Object * -ExcludeProperty RequestId | ConvertTo-Json -Depth 100 | Out-File (New-Item -Path $outputFileName -Force)
     }
     #endregion output results
 }
