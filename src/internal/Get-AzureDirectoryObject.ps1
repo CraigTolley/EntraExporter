@@ -16,7 +16,7 @@ function Get-AzureDirectoryObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [Alias("ids")]
+        [Alias('ids')]
         [string[]] $id
     )
 
@@ -42,9 +42,9 @@ function Get-AzureDirectoryObject {
         Write-Verbose "Processing chunk $($i + 1) with items: $($currentChunk -join ', ')"
 
         $body = @{
-            "ids" = @($currentChunk)
+            'ids' = @($currentChunk)
         }
 
-        Invoke-MgGraphRequest -Uri "v1.0/directoryObjects/microsoft.graph.getByIds" -Body ($body | ConvertTo-Json -Depth 10) -Method POST | Get-MgGraphAllPages | select *, @{Name = 'ObjectType'; Expression = { $_.'@odata.type' -replace "#microsoft.graph." } } -ExcludeProperty '@odata.type'
+        Invoke-MgGraphRequest -Uri 'v1.0/directoryObjects/microsoft.graph.getByIds' -Body ($body | ConvertTo-Json -Depth 10) -Method POST | Get-MgGraphAllPages | Select-Object *, @{Name = 'ObjectType'; Expression = { $_.'@odata.type' -replace '#microsoft.graph.' } } -ExcludeProperty '@odata.type'
     }
 }
