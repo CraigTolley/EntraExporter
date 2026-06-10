@@ -644,7 +644,7 @@ function Get-EEDefaultSchema {
             GraphUri              = 'groups'
             Filter                = "groupTypes/any(c:c eq 'DynamicMembership')"
             Path                  = 'Groups'
-            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions' }
+            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions'; '$top' = '999' }
             ApiVersion            = 'beta'
             Tag                   = @('All', 'Config', 'Groups')
             DelegatedPermission   = 'Directory.Read.All'
@@ -653,6 +653,7 @@ function Get-EEDefaultSchema {
                 @{
                     GraphUri              = 'groups/<placeholder>/owners'
                     Select                = 'id, userPrincipalName, displayName'
+                    QueryParameters       = @{ '$top' = '999' }
                     Path                  = 'Owners'
                     Tag                   = @('All', 'Config', 'Groups')
                     DelegatedPermission   = 'Directory.Read.All'
@@ -664,7 +665,7 @@ function Get-EEDefaultSchema {
             GraphUri              = 'groups'
             Filter                = "not(groupTypes/any(c:c eq 'DynamicMembership'))"
             Path                  = 'Groups'
-            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions' }
+            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions'; '$top' = '999' }
             ApiVersion            = 'beta'
             Tag                   = @('All', 'Groups')
             DelegatedPermission   = 'Directory.Read.All'
@@ -673,6 +674,7 @@ function Get-EEDefaultSchema {
                 @{
                     GraphUri              = 'groups/<placeholder>/owners'
                     Select                = 'id, userPrincipalName, displayName'
+                    QueryParameters       = @{ '$top' = '999' }
                     Path                  = 'Owners'
                     Tag                   = @('All', 'Config', 'Groups')
                     DelegatedPermission   = 'Directory.Read.All'
@@ -681,6 +683,7 @@ function Get-EEDefaultSchema {
                 @{
                     GraphUri              = 'groups/<placeholder>/members'
                     Select                = 'id, userPrincipalName, displayName'
+                    QueryParameters       = @{ '$top' = '999' }
                     Path                  = 'Members'
                     Tag                   = @('All', 'Groups')
                     DelegatedPermission   = 'Directory.Read.All'
@@ -831,7 +834,7 @@ function Get-EEDefaultSchema {
             GraphUri              = 'users'
             Path                  = 'Users'
             Filter                = $null
-            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions' }
+            QueryParameters       = @{ '$count' = 'true'; '$expand' = 'extensions'; '$top' = '999' }
             ApiVersion            = 'beta'
             Tag                   = @('All', 'Users')
             DelegatedPermission   = 'Directory.Read.All'
