@@ -111,7 +111,7 @@
     }
 
     if ($All) {
-        $Type = @('All') 
+        $Type = @('All')
     }
     $global:Type = $Type #Used in places like Groups where Config flag will limit the resultset to just dynamic groups.
 
@@ -249,7 +249,7 @@
             $ignoreError = Get-ObjectProperty $item 'IgnoreError'
             $children = Get-ObjectProperty $item 'Children'
             if (!$apiVersion) {
-                $apiVersion = 'v1.0' 
+                $apiVersion = 'v1.0'
             }
 
             if ($command) {
@@ -383,7 +383,7 @@
         $ignoreError = Get-ObjectProperty $item 'IgnoreError'
         $children = Get-ObjectProperty $item 'Children'
         if (!$apiVersion) {
-            $apiVersion = 'v1.0' 
+            $apiVersion = 'v1.0'
         }
 
         if ($command) {
@@ -484,6 +484,14 @@
     #endregion process all schema items recursively
 
     #region output results
+
+    <#
+    Identify if Long Paths is enabled. Do this once to save repeated registry calls.
+    The call only takes a few milliseconds but it adds up when we have thousands of results to output
+    #>
+    $longPathsEnabled = Get-ItemPropertyValue HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -ErrorAction SilentlyContinue
+
+    Write-Verbose "Data collection completed. Results count: $($results.Count). Outputting results to files..."
     foreach ($item in $results) {
         if (!(Get-ObjectProperty $item 'Id')) {
             <#
@@ -534,7 +542,7 @@
             $outputFileName = Join-Path (Join-Path -Path $outputFileName -ChildPath $itemId) -ChildPath "$itemId.json"
         }
 
-        if ($outputFileName.Length -gt 255 -and (Get-ItemPropertyValue HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -ErrorAction SilentlyContinue) -ne 1) {
+        if ($outputFileName.Length -gt 255 -and $longPathsEnabled -ne 1) {
             Write-Warning "Output file path '$outputFileName' is longer than 255 characters. Enable long path support to continue!"
             return
         }
