@@ -363,6 +363,7 @@
     $batchRequestStableApi = [System.Collections.Generic.List[Object]]::new()
     $batchRequestBetaApi = [System.Collections.Generic.List[Object]]::new()
     $script:childrenToProcess = [System.Collections.Generic.List[Object]]::new()
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     $requestedExportSchema = $ExportSchema | Where-Object { Compare-Object $_.Tag $Type -ExcludeDifferent -IncludeEqual }
 
@@ -490,8 +491,10 @@
     The call only takes a few milliseconds but it adds up when we have thousands of results to output
     #>
     $longPathsEnabled = Get-ItemPropertyValue HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -ErrorAction SilentlyContinue
+    $Stopwatch.Stop()
+    Write-Verbose "Data collection completed. Results count: $($results.Count). Completed in $($Stopwatch.Elapsed.TotalSeconds) seconds. Outputting results to files..."
 
-    Write-Verbose "Data collection completed. Results count: $($results.Count). Outputting results to files..."
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     foreach ($item in $results) {
         if (!(Get-ObjectProperty $item 'Id')) {
             <#
@@ -549,5 +552,7 @@
 
         $item | Select-Object * -ExcludeProperty RequestId | ConvertTo-Json -Depth 100 | Out-File (New-Item -Path $outputFileName -Force)
     }
+    $Stopwatch.Stop()
+    Write-Verbose "Data export completed. Time taken: $($Stopwatch.Elapsed.TotalSeconds) seconds."
     #endregion output results
 }
