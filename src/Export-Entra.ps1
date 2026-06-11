@@ -558,7 +558,9 @@
             return
         }
 
-        $item | Select-Object * -ExcludeProperty RequestId | ConvertTo-Json -Depth 100 | Out-File (New-Item -Path $outputFileName -Force)
+        # Previously used Out-File for the content, but in testing found that Set-Content takes a fraction of the time.
+        # With large exports, this difference adds up to hours of extra time spent just writing the output to files.
+        $item | Select-Object * -ExcludeProperty RequestId | ConvertTo-Json -Depth 100 | Set-Content -Path (New-Item -Path $outputFileName -Force) -Force -Encoding utf8NoBOM
     }
     $Stopwatch.Stop()
     Write-Verbose "Data export completed. Time taken: $($Stopwatch.Elapsed.TotalSeconds) seconds."
