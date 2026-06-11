@@ -479,6 +479,14 @@
             _processChildrenRecursive -schemaItems $childGroup.Children -basePath $childGroup.BasePath -parentIds $parentIds -results ([ref]$results) -batchRequestStableApi ([ref]$batchRequestStableApi) -batchRequestBetaApi ([ref]$batchRequestBetaApi)
         }
 
+        <#
+        Remove any duplicate queries. The schema definitions for groups (as an example) have 2 filtered definitions.
+        This was resulting in the owners child being included twice, yet the later export would just overwrite the data on disk
+        So filter to unique queries before executing to save time and avoid hitting throttling limits
+        #>
+        $batchRequestStableApi = $batchRequestStableApi | Sort-Object method, URL, headers -Unique
+        $batchRequestBetaApi = $batchRequestBetaApi | Sort-Object method, URL, headers -Unique
+
         # execute batch requests for this level
         _executeBatchRequests -batchRequestStableApi ([ref]$batchRequestStableApi) -batchRequestBetaApi ([ref]$batchRequestBetaApi) -results ([ref]$results) -requestedExportSchema $requestedExportSchema
     }
